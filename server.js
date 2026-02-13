@@ -20,7 +20,8 @@ const upload = multer({ dest: 'uploads/' });
 // ============================================
 // 1. VOICE RECOGNITION & SPEECH-TO-TEXT
 // ============================================
-const SpeechRecognition = require('web-speech-api').SpeechRecognition;
+// Server tərəfində səs tanıma kitabxanasına ehtiyac yoxdur, 
+// çünki bu prosesi brauzer özü yerinə yetirir.
 
 function recognizeVoice(audioStream) {
   return new Promise((resolve, reject) => {
