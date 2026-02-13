@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Universal Analyzer</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #0f0f0f; color: white; text-align: center; padding: 20px; }
+        .container { max-width: 700px; margin: auto; background: #1a1a1a; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #333; }
+        h1 { color: #00ff96; margin-bottom: 10px; }
+        textarea { width: 100%; height: 120px; padding: 15px; border-radius: 10px; border: 1px solid #444; background: #252525; color: white; margin-bottom: 15px; box-sizing: border-box; font-size: 16px; }
+        .btn-group { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 25px; }
+        button { border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; font-size: 14px; }
+        .btn-analyze { background: #00ff96; color: black; }
+        .btn-analyze:hover { background: #00cc78; transform: translateY(-2px); }
+        .btn-mic { background: #ff4b2b; color: white; }
+        .btn-mic.recording { animation: pulse 1.5s infinite; background: #ff0000; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 75, 43, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(255, 75, 43, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 75, 43, 0); } }
+        #result, #imageResult { margin-top: 20px; padding: 20px; border-radius: 12px; background: #252525; text-align: left; border-left: 5px solid #00ff96; display: none; }
+        .image-section { border-top: 1px solid #333; margin-top: 30px; padding-top: 20px; }
+        input[type="file"] { margin: 15px 0; color: #888; }
+        img { max-width: 100%; border-radius: 10px; margin-top: 10px; border: 2px solid #444; }
+        .status-text { font-style: italic; color: #00ff96; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🤖 AI Universal Analyzer</h1>
+    <p>Səs, Mətn və Şəkil vasitəsilə süni intellekt analizi</p>
+    
+    <textarea id="userInput" placeholder="Bura bir şeylər yazın və ya mikrofonu istifadə edin..."></textarea>
+    
+    <div class="btn-group">
+        <button id="micBtn" class="btn-mic" onclick="toggleMic()">🎤 Mikrofonu Aç</button>
+        <button class="btn-analyze" onclick="analyzeText()">Duyğunu Analiz Et</button>
+    </div>
+
+    <div id="result">
+        <strong>Analiz Nəticəsi:</strong>
+        <p id="emotionDisplay" style="font-size: 1.2em;"></p>
+        <p id="transcriptOutput" style="color: #888; font-size: 0.9em;"></p>
+    </div>
+
+    <div class="image-section">
+        <h3>🖼️ Şəkil Redaktəsi</h3>
+        <input type="file" id="imageInput" accept="image/*">
+        <div class="btn-group">
+            <button class="btn-analyze" onclick="processImage('grayscale')">Ağ-Qara</button>
+            <button class="btn-analyze" onclick="processImage('blur')">Bulanıq (Blur)</button>
+        </div>
+        
+        <div id="imageResult">
+            <p class="status-text">✅ Emal olundu:</p>
+            <img id="outputImage" src="" alt="Nəticə">
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- 1. SƏS VƏ MƏTN ANALİZİ ---
+    let recognition;
+    let isRecording = false;
+
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.lang = 'az-AZ';
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            document.getElementById('userInput').value = transcript;
+            stopRecording();
+            analyzeText();
+        };
+    }
+
+    function toggleMic() {
+        if (!recognition) return alert("Səs tanıma dəstəklənmir.");
+        isRecording ? stopRecording() : startRecording();
+    }
+
+    function startRecording() {
+        isRecording = true;
+        recognition.start();
+        document.getElementById('micBtn').innerText = "🛑 Dayandır...";
+        document.getElementById('micBtn').classList.add('recording');
+    }
+
+    function stopRecording() {
+        isRecording = false;
+        recognition.stop();
+        document.getElementById('micBtn').innerText = "🎤 Mikrofonu Aç";
+        document.getElementById('micBtn').classList.remove('recording');
+    }
+
+    async function analyzeText() {
+        const text = document.getElementById('userInput').value;
+        if(!text) return;
+
+        try {
+            const response = await fetch('/api/text-emotion', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text })
+            });
+            const data = await response.json();
+
+            if(data.success) {
+                const emo = data.emotion.emotion;
+                const emoji = emo === 'positive' ? '😊 Müsbət' : emo === 'negative' ? '😔 Mənfi' : '😐 Neytral';
+                
+                document.getElementById('result').style.display = 'block';
+                document.getElementById('emotionDisplay').innerHTML = `Emosiya: <strong>${emoji}</strong>`;
+                document.getElementById('transcriptOutput').innerText = "Mətn: " + text;
+                
+                speak(`Analiz tamamlandı. Bu mətndə ${emo === 'positive' ? 'müsbət' : emo === 'negative' ? 'mənfi' : 'neytral'} ton hiss etdim.`);
+            }
+        } catch (e) { alert("Xəta!"); }
+    }
+
+    // --- 2. SƏSLİ CAVAB (TTS) ---
+    function speak(text) {
+        window.speechSynthesis.cancel();
+        const msg = new SpeechSynthesisUtterance(text);
+        msg.lang = 'tr-TR'; 
+        window.speechSynthesis.speak(msg);
+    }
+
+    // --- 3. ŞƏKİL EMALI ---
+    async function processImage(type) {
+        const file = document.getElementById('imageInput').files[0];
+        if (!file) return alert("Şəkil seçin!");
+
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('operations', JSON.stringify(type === 'grayscale' ? { grayscale: true } : { blur: 5 }));
+
+        try {
+            const response = await fetch('/api/image-edit', { method: 'POST', body: formData });
+            const data = await response.json();
+            if (data.success) {
+                document.getElementById('imageResult').style.display = 'block';
+                document.getElementById('outputImage').src = '/' + data.editedPath;
+                speak("Şəkil redaktə edildi.");
+            }
+        } catch (e) { alert("Şəkil xətası!"); }
+    }
+</script>
+
+</body>
+</html>
+
