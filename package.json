@@ -1,15 +1,1 @@
-{
-  "name": "ai-emotion-analyzer",
-  "version": "1.0.0",
-  "description": "AI Universal Analyzer - Stabil Versiya",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
-  "dependencies": {
-    "express": "^4.18.2",
-    "multer": "^1.4.5-lts.1",
-    "sharp": "^0.32.6",
-    "sentiment": "^5.0.2"
-  }
-}
+echo '{"name":"ai-emotion","version":"1.0.0","main":"server.js","dependencies":{"express":"^4.18.2","multer":"^1.4.5-lts.1","sharp":"^0.32.6","sentiment":"^5.0.2"}}' > package.json
